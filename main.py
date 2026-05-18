@@ -1,12 +1,6 @@
-# retrieve posts from instagram (http call)
-# process them to get image and description
-# prepare telegram message
-# send to bot
-# delete local data when done
 import os
 
 import asyncio
-from telegram import Bot
 
 from instaloader import Instaloader
 from dotenv import load_dotenv
@@ -32,12 +26,14 @@ if not profiles or not username or not password:
     print("One of the environment variables is not properly set. Please check the env file.")
     exit(1)
 
+# get profiles to fetch
 profiles_array = [p.strip() for p in profiles.split(",") if p.strip()]
 
 if not profiles_array:
     print("No profile to fetch, please check your env")
     exit(1)
 
+# get the logged user if the login succeeds
 logged_user = login(username=username, password=password, instagram_loader=loader)
 
 if not logged_user:
@@ -46,13 +42,18 @@ if not logged_user:
 
 print("Logged in, ready to fetch posts.")
 
+# create shortcodes to avoid send duplicated posts if the job runs
+# more than once a day
 sent_shortcodes = load_sent_shortcodes()
 
+# fetch posts and filter out duplicates
 today_posts = fetch_profiles_posts(profiles_array=profiles_array, loader_context=loader.context)
 new_posts = [p for p in today_posts if p.shortcode not in sent_shortcodes]
 print(f"Found {len(today_posts)} posts today, {len(new_posts)} not yet sent.")
 
+# send posts to telegram bot
 asyncio.run(send_posts_to_telegram(new_posts, bot_token, telegram_id))
 
+# save/update shortcodes
 sent_shortcodes.update(p.shortcode for p in new_posts)
 save_sent_shortcodes(sent_shortcodes)

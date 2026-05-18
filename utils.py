@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime, timezone
 from itertools import islice
 
@@ -52,8 +51,8 @@ def fetch_profiles_posts(profiles_array, loader_context):
             profile = Profile.from_username(loader_context, profile)
             print(f"Found profile {profile.username} with {profile.mediacount} posts")
             posts = profile.get_posts()
-        except (ProfileNotExistsException, ConnectionException):
-            print(f"Profile {profile} does not exist or there was a connection error.")
+        except (ProfileNotExistsException, ConnectionException) as e:
+            print(f"Profile {profile} does not exist or there was a connection error: {e}")
             continue
 
         first_10_posts = list(islice(posts, 10))
