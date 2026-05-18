@@ -28,6 +28,13 @@ jobs:
       - name: Restore Instagram session file
         run: echo "${{ secrets.INSTAGRAM_SESSION_B64 }}" | base64 --decode > session.txt
 
+      - name: Restore sent posts cache
+        uses: actions/cache@v5
+        with:
+          path: sent_posts.json
+          key: sent-posts-${{ github.run_id }}
+          restore-keys: sent-posts-
+
       - name: Run bot
         env:
           INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
