@@ -1,0 +1,38 @@
+name: Post Bot
+
+on:
+  schedule:
+    # Runs at 11:00 AM — adjust for your timezone (times are UTC)
+    - cron: '0 9 * * *'
+    # Runs at 11:40 PM — adjust for your timezone (times are UTC)
+    - cron: '40 21 * * *'
+  # Allows you to trigger the workflow manually from the GitHub UI
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.5'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore Instagram session file
+        run: echo "${{ secrets.INSTAGRAM_SESSION_B64 }}" | base64 --decode > session.txt
+
+      - name: Run bot
+        env:
+          INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+          INSTAGRAM_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
+          PROFILES_LIST: ${{ secrets.PROFILES_LIST }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TELEGRAM_ID: ${{ secrets.TELEGRAM_ID }}
+        run: python main.py
