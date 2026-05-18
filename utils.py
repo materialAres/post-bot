@@ -1,9 +1,24 @@
+import json
+import os
 from datetime import datetime, timezone
 from itertools import islice
 
 from instaloader import ConnectionException, Profile, ProfileNotExistsException, TwoFactorAuthRequiredException
 from telegram import Bot
 import telegram
+
+
+def load_sent_shortcodes(filename="sent_posts.json"):
+    try:
+        with open(filename, "r") as f:
+            return set(json.load(f))
+    except FileNotFoundError:
+        return set()
+
+
+def save_sent_shortcodes(shortcodes, filename="sent_posts.json"):
+    with open(filename, "w") as f:
+        json.dump(list(shortcodes), f)
 
 
 def login(username, password, instagram_loader):

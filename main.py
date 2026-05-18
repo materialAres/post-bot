@@ -11,7 +11,7 @@ from telegram import Bot
 from instaloader import Instaloader
 from dotenv import load_dotenv
 
-from utils import fetch_profiles_posts, login, send_posts_to_telegram
+from utils import fetch_profiles_posts, load_sent_shortcodes, login, save_sent_shortcodes, send_posts_to_telegram
 
 # load the environment variables
 load_dotenv()
@@ -46,7 +46,13 @@ if not logged_user:
 
 print("Logged in, ready to fetch posts.")
 
-today_posts = fetch_profiles_posts(profiles_array=profiles_array, loader_context=loader.context)
+sent_shortcodes = load_sent_shortcodes()
 
-asyncio.run(send_posts_to_telegram(today_posts, bot_token, telegram_id))
-print(f"Found {len(today_posts)} posts from today:", today_posts)
+today_posts = fetch_profiles_posts(profiles_array=profiles_array, loader_context=loader.context)
+new_posts = [p for p in today_posts if p.shortcode not in sent_shortcodes]
+print(f"Found {len(today_posts)} posts today, {len(new_posts)} not yet sent.")
+
+asyncio.run(send_posts_to_telegram(new_posts, bot_token, telegram_id))
+
+sent_shortcodes.update(p.shortcode for p in new_posts)
+save_sent_shortcodes(sent_shortcodes)
