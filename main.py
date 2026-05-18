@@ -30,19 +30,19 @@ profiles_array = None
 
 if not profiles or not username or not password:
     print("One of the environment variables is not properly set. Please check the env file.")
-    exit()
+    exit(1)
 
 profiles_array = [p.strip() for p in profiles.split(",") if p.strip()]
 
 if not profiles_array:
     print("No profile to fetch, please check your env")
-    exit()
+    exit(1)
 
 logged_user = login(username=username, password=password, instagram_loader=loader)
 
 if not logged_user:
     print("Login failed, aborting operation")
-    exit()
+    exit(1)
 
 print("Logged in, ready to fetch posts.")
 
