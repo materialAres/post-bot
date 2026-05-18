@@ -1,0 +1,28 @@
+# Virtual environments
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environment variables
+.env
+*.env
+
+# Instaloader session
+session.txt
+
+# Pyright config
+pyrightconfig.json
