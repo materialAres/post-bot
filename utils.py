@@ -1,12 +1,19 @@
+import asyncio
 import json
 from datetime import datetime, timezone
 from itertools import islice
 
-from instaloader import ConnectionException, Profile, ProfileNotExistsException, TwoFactorAuthRequiredException
+from instaloader import ConnectionException, LoginException, Profile, ProfileNotExistsException, TwoFactorAuthRequiredException
 from telegram import Bot
 import telegram
 
 _TELEGRAM_CAPTION_LIMIT = 1024
+
+def notify_telegram(message, bot_token, telegram_id):
+    async def _send():
+        await Bot(token=bot_token).send_message(chat_id=telegram_id, text=message)
+    asyncio.run(_send())
+
 
 def load_sent_shortcodes(filename="sent_posts.json"):
     try:
@@ -34,13 +41,18 @@ def save_sent_story_shortcodes(shortcodes, filename="sent_stories.json"):
         json.dump(list(shortcodes), f)
 
 
-def login(username, password, instagram_loader):
+def login(username, password, instagram_loader, bot_token, telegram_id):
+    session_error = None
+
     try:
         instagram_loader.load_session_from_file(username, filename="session.txt")
         print("Session loaded successfully.")
         return instagram_loader.test_login()
     except FileNotFoundError:
         print("No session file found. Will log in with credentials.")
+    except (LoginException, ConnectionException, Exception) as error:
+        print(f"Session load failed: {error}")
+        session_error = error
 
     if not instagram_loader.test_login():
         print("Logging in...")
@@ -52,10 +64,20 @@ def login(username, password, instagram_loader):
         if instagram_loader.test_login():
             instagram_loader.save_session_to_file("session.txt")
             print("Logged in successfully.")
+            if session_error:
+                notify_telegram(
+                    f"There was a problem loading the session. Check if it isn't expired. Error: {session_error}",
+                    bot_token, telegram_id
+                )
             return instagram_loader.test_login()
 
     if not instagram_loader.test_login():
         print("Not logged in. Please check your credentials.")
+        if session_error:
+            notify_telegram(
+                f"Unable to login, check locally for problems. Error: {session_error}",
+                bot_token, telegram_id
+            )
         return None
     
 def fetch_profiles_posts(profiles_array, loader_context):

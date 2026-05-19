@@ -34,7 +34,7 @@ if not profiles_array:
     exit(1)
 
 # get the logged user if the login succeeds
-logged_user = login(username=username, password=password, instagram_loader=loader)
+logged_user = login(username=username, password=password, instagram_loader=loader, bot_token=bot_token, telegram_id=telegram_id)
 
 if not logged_user:
     print("Login failed, aborting operation")
