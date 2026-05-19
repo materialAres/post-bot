@@ -6,6 +6,7 @@ from instaloader import ConnectionException, Profile, ProfileNotExistsException,
 from telegram import Bot
 import telegram
 
+_TELEGRAM_CAPTION_LIMIT = 1024
 
 def load_sent_shortcodes(filename="sent_posts.json"):
     try:
@@ -97,17 +98,22 @@ def get_profile_stories(profile_ids, loader):
         print(f"Connection error while fetching stories for profile IDs {profile_ids}: {e}")
     return stories
 
+def _truncate_caption(caption):
+    if caption and len(caption) > _TELEGRAM_CAPTION_LIMIT:
+        return caption[:_TELEGRAM_CAPTION_LIMIT - 3] + "..."
+    return caption
+
 def get_post_data(post):
     return {
         "image_url": post.url,
-        "description": post.caption,
+        "description": _truncate_caption(post.caption),
         "date": post.date_utc
     }
 
 def get_story_data(story):
     return {
         "image_url": story.url,
-        "description": story.caption,
+        "description": _truncate_caption(story.caption),
         "date": story.date_utc
     }
 
