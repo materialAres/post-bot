@@ -20,11 +20,12 @@ A Python bot that monitors Instagram accounts for new posts and forwards each po
 
 ## 1. Project Overview
 
-post-bot polls one or more Instagram profiles using [instaloader](https://instaloader.github.io/), filters posts published today (UTC), and sends each one to a Telegram chat via the [python-telegram-bot](https://python-telegram-bot.org/) library.
+post-bot polls one or more Instagram profiles using [instaloader](https://instaloader.github.io/), filters posts published today (UTC) and currently active stories, and sends each one to a Telegram chat via the [python-telegram-bot](https://python-telegram-bot.org/) library.
 
 Key design decisions:
 
-- **Deduplication** — post shortcodes that have already been forwarded are persisted in `sent_posts.json`. Re-runs skip any shortcode already present in that file.
+- **Posts and stories** — both regular feed posts and stories are fetched and forwarded to Telegram in the same run.
+- **Deduplication** — shortcodes of forwarded posts are persisted in `sent_posts.json`; shortcodes of forwarded stories are persisted in `sent_stories.json`. Re-runs skip any shortcode already present in the respective file.
 - **Session persistence** — instaloader's session is saved to `session.txt` after the first successful login. In GitHub Actions this file is restored from a base64-encoded secret on every run, avoiding repeated credential-based logins that could trigger Instagram rate limits or 2FA prompts.
 
 ---
@@ -146,9 +147,9 @@ Navigate to your repository on GitHub → **Settings** → **Secrets and variabl
 | `BOT_TOKEN` | Telegram bot token from BotFather. |
 | `TELEGRAM_ID` | Numeric Telegram chat ID that receives the forwarded posts. |
 
-### How `sent_posts.json` is persisted
+### How `sent_posts.json` and `sent_stories.json` are persisted
 
-The workflow uses the `actions/cache` step to persist `sent_posts.json` across runs:
+The workflow uses the `actions/cache` step to persist both deduplication files across runs:
 
 ```yaml
 - name: Restore sent posts cache
@@ -157,9 +158,16 @@ The workflow uses the `actions/cache` step to persist `sent_posts.json` across r
     path: sent_posts.json
     key: sent-posts-${{ github.run_id }}
     restore-keys: sent-posts-
+
+- name: Restore sent stories cache
+  uses: actions/cache@v5
+  with:
+    path: sent_stories.json
+    key: sent-stories-${{ github.run_id }}
+    restore-keys: sent-stories-
 ```
 
-On each run the most recently saved `sent_posts.json` is restored before the bot executes, ensuring previously sent shortcodes are not forwarded again.
+On each run the most recently saved files are restored before the bot executes, ensuring previously sent posts and stories are not forwarded again.
 
 ---
 
@@ -217,6 +225,10 @@ This is useful for testing configuration changes or forcing an immediate check a
 
 ## 9. How Deduplication Works
 
+The same mechanism is applied independently to posts and stories.
+
+### Posts
+
 Every time a post is successfully forwarded to Telegram, its Instagram shortcode (the unique identifier visible in the post URL, e.g. `C1a2B3cD4eF`) is added to `sent_posts.json`:
 
 ```json
@@ -229,6 +241,14 @@ At the start of each run, `load_sent_shortcodes()` reads this file into a Python
 new_posts = [p for p in today_posts if p.shortcode not in sent_shortcodes]
 ```
 
-Once the new posts are sent, the set is updated and written back to disk by `save_sent_shortcodes()`. The `actions/cache` step then saves this file so it is available on the next run.
+Once the new posts are sent, the set is updated and written back to disk by `save_sent_shortcodes()`.
 
-This means that even if the workflow runs multiple times on the same day (e.g. via a manual trigger), each post is forwarded exactly once.
+### Stories
+
+The same pattern applies to stories using `sent_stories.json`. Story shortcodes are loaded into a set via `load_sent_story_shortcodes()`, active stories are filtered before sending, and the set is persisted afterwards via `save_sent_story_shortcodes()`:
+
+```python
+new_stories = [s for s in profiles_stories if s.shortcode not in sent_story_shortcodes]
+```
+
+The `actions/cache` step saves both files after each run so they are available on the next run. This means that even if the workflow runs multiple times on the same day (e.g. via a manual trigger), each post and story is forwarded exactly once.
