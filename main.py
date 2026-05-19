@@ -5,7 +5,7 @@ import asyncio
 from instaloader import Instaloader
 from dotenv import load_dotenv
 
-from utils import fetch_profiles_posts, load_sent_shortcodes, login, save_sent_shortcodes, send_posts_to_telegram
+from utils import fetch_profiles_posts, get_profile_ids, get_profile_stories, load_sent_shortcodes, login, save_sent_shortcodes, send_posts_to_telegram, send_stories_to_telegram
 
 # load the environment variables
 load_dotenv()
@@ -48,11 +48,15 @@ sent_shortcodes = load_sent_shortcodes()
 
 # fetch posts and filter out duplicates
 today_posts = fetch_profiles_posts(profiles_array=profiles_array, loader_context=loader.context)
+profiles_ids = get_profile_ids(profiles_array=profiles_array, loader_context=loader.context)
+profiles_stories = get_profile_stories(profile_ids=profiles_ids, loader=loader)
+print(f"Fetched {len(profiles_stories)} stories for profiles {profiles_ids}")
 new_posts = [p for p in today_posts if p.shortcode not in sent_shortcodes]
 print(f"Found {len(today_posts)} posts today, {len(new_posts)} not yet sent.")
 
 # send posts to telegram bot
 asyncio.run(send_posts_to_telegram(new_posts, bot_token, telegram_id))
+asyncio.run(send_stories_to_telegram(profiles_stories, bot_token, telegram_id))
 
 # save/update shortcodes
 sent_shortcodes.update(p.shortcode for p in new_posts)
