@@ -34,7 +34,12 @@ jobs:
           path: sent_posts.json
           key: sent-posts-${{ github.run_id }}
           restore-keys: sent-posts-
-
+      - name: Restore sent stories cache
+        uses: actions/cache@v5
+        with:
+          path: sent_stories.json
+          key: sent-stories-${{ github.run_id }}
+          restore-keys: sent-stories-
       - name: Run bot
         env:
           INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
