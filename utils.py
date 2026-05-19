@@ -20,6 +20,19 @@ def save_sent_shortcodes(shortcodes, filename="sent_posts.json"):
         json.dump(list(shortcodes), f)
 
 
+def load_sent_story_shortcodes(filename="sent_stories.json"):
+    try:
+        with open(filename, "r") as f:
+            return set(json.load(f))
+    except FileNotFoundError:
+        return set()
+
+
+def save_sent_story_shortcodes(shortcodes, filename="sent_stories.json"):
+    with open(filename, "w") as f:
+        json.dump(list(shortcodes), f)
+
+
 def login(username, password, instagram_loader):
     try:
         instagram_loader.load_session_from_file(username, filename="session.txt")
@@ -60,7 +73,30 @@ def fetch_profiles_posts(profiles_array, loader_context):
         all_posts.extend(today_post_list)
     
     return all_posts
-    
+
+def get_profile_ids(profiles_array, loader_context):
+    profile_ids = []
+    for profile in profiles_array:
+        try:
+            profile = Profile.from_username(loader_context, profile)
+            profile_ids.append(profile.userid)
+        except (ProfileNotExistsException, ConnectionException) as e:
+            print(f"Profile {profile} does not exist or there was a connection error: {e}")
+            continue
+    return profile_ids
+
+def get_profile_stories(profile_ids, loader):
+    stories = []
+    try:
+        profile_stories = loader.get_stories(userids=profile_ids)
+
+        for story in profile_stories:
+            for item in story.get_items():
+                stories.append(item)
+    except ConnectionException as e:
+        print(f"Connection error while fetching stories for profile IDs {profile_ids}: {e}")
+    return stories
+
 def get_post_data(post):
     return {
         "image_url": post.url,
@@ -68,10 +104,20 @@ def get_post_data(post):
         "date": post.date_utc
     }
 
+def get_story_data(story):
+    return {
+        "image_url": story.url,
+        "description": story.caption,
+        "date": story.date_utc
+    }
+
 async def send_posts_to_telegram(today_posts, bot_token, telegram_id):
     post_data = [get_post_data(post) for post in today_posts]
-    if not bot_token or not telegram_id or not post_data:
-        print("Telegram bot token or chat ID is not set. Please check the env file.")
+    if not bot_token or not telegram_id:
+        print("Send Posts: Telegram bot token or chat ID is not set. Please check the env file.")
+        return
+    if not post_data:
+        print(f"Send Posts: No posts to send for post data: {post_data}")
         return
     bot = Bot(token=bot_token)
     for data in post_data:
@@ -79,3 +125,18 @@ async def send_posts_to_telegram(today_posts, bot_token, telegram_id):
             await bot.send_photo(chat_id=telegram_id, photo=data["image_url"], caption=data["description"])
         except telegram.error.TelegramError as e:
             print(f"Failed to send post to Telegram: {e}")
+
+async def send_stories_to_telegram(stories, bot_token, telegram_id):
+    story_data = [get_story_data(story) for story in stories]
+    if not bot_token or not telegram_id:
+        print("Send Stories: Telegram bot token or chat ID is not set. Please check the env file.")
+        return
+    if not story_data:
+        print(f"Send Stories: No stories to send for story data: {story_data}")
+        return
+    bot = Bot(token=bot_token)
+    for data in story_data:
+        try:
+            await bot.send_photo(chat_id=telegram_id, photo=data["image_url"], caption=data["description"])
+        except telegram.error.TelegramError as e:
+            print(f"Failed to send story to Telegram: {e}")
