@@ -23,6 +23,8 @@ build/
 
 # Instaloader session
 session.txt
+sent_posts.json
+sent_stories.json
 
 # Pyright config
 pyrightconfig.json

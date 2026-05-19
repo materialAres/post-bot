@@ -20,6 +20,19 @@ def save_sent_shortcodes(shortcodes, filename="sent_posts.json"):
         json.dump(list(shortcodes), f)
 
 
+def load_sent_story_shortcodes(filename="sent_stories.json"):
+    try:
+        with open(filename, "r") as f:
+            return set(json.load(f))
+    except FileNotFoundError:
+        return set()
+
+
+def save_sent_story_shortcodes(shortcodes, filename="sent_stories.json"):
+    with open(filename, "w") as f:
+        json.dump(list(shortcodes), f)
+
+
 def login(username, password, instagram_loader):
     try:
         instagram_loader.load_session_from_file(username, filename="session.txt")
@@ -100,8 +113,11 @@ def get_story_data(story):
 
 async def send_posts_to_telegram(today_posts, bot_token, telegram_id):
     post_data = [get_post_data(post) for post in today_posts]
-    if not bot_token or not telegram_id or not post_data:
-        print("Telegram bot token or chat ID is not set. Please check the env file.")
+    if not bot_token or not telegram_id:
+        print("Send Posts: Telegram bot token or chat ID is not set. Please check the env file.")
+        return
+    if not post_data:
+        print(f"Send Posts: No posts to send for post data: {post_data}")
         return
     bot = Bot(token=bot_token)
     for data in post_data:
@@ -112,8 +128,11 @@ async def send_posts_to_telegram(today_posts, bot_token, telegram_id):
 
 async def send_stories_to_telegram(stories, bot_token, telegram_id):
     story_data = [get_story_data(story) for story in stories]
-    if not bot_token or not telegram_id or not story_data:
-        print("Telegram bot token or chat ID is not set. Please check the env file.")
+    if not bot_token or not telegram_id:
+        print("Send Stories: Telegram bot token or chat ID is not set. Please check the env file.")
+        return
+    if not story_data:
+        print(f"Send Stories: No stories to send for story data: {story_data}")
         return
     bot = Bot(token=bot_token)
     for data in story_data:
