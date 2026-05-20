@@ -48,8 +48,8 @@ sent_shortcodes = load_sent_shortcodes()
 sent_story_shortcodes = load_sent_story_shortcodes()
 
 # fetch posts and filter out duplicates
-today_posts = fetch_profiles_posts(profiles_array=profiles_array, loader_context=loader.context)
-profiles_ids = get_profile_ids(profiles_array=profiles_array, loader_context=loader.context)
+today_posts = fetch_profiles_posts(profiles_array=profiles_array, loader_context=loader.context, bot_token=bot_token, telegram_id=telegram_id)
+profiles_ids = get_profile_ids(profiles_array=profiles_array, loader_context=loader.context, bot_token=bot_token, telegram_id=telegram_id)
 profiles_stories = get_profile_stories(profile_ids=profiles_ids, loader=loader)
 print(f"Fetched {len(profiles_stories)} stories for profiles {profiles_ids}")
 new_posts = [p for p in today_posts if p.shortcode not in sent_shortcodes]

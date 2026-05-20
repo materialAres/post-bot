@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from itertools import islice
 
-from instaloader import ConnectionException, LoginException, Profile, ProfileNotExistsException, TwoFactorAuthRequiredException
+from instaloader import ConnectionException, LoginException, Profile, ProfileNotExistsException, QueryReturnedBadRequestException, TwoFactorAuthRequiredException
 from telegram import Bot
 import telegram
 
@@ -80,7 +80,7 @@ def login(username, password, instagram_loader, bot_token, telegram_id):
             )
         return None
     
-def fetch_profiles_posts(profiles_array, loader_context):
+def fetch_profiles_posts(profiles_array, loader_context, bot_token, telegram_id):
     all_posts = []
     for profile in profiles_array:
         try:
@@ -90,6 +90,13 @@ def fetch_profiles_posts(profiles_array, loader_context):
         except (ProfileNotExistsException, ConnectionException) as e:
             print(f"Profile {profile} does not exist or there was a connection error: {e}")
             continue
+        except QueryReturnedBadRequestException as e:
+            print(f"Bad request error while fetching posts for profile {profile}: {e}")
+            notify_telegram(
+                f"Bad request error while fetching posts for profile {profile}: {e}",
+                bot_token, telegram_id
+            )
+            break
 
         first_10_posts = list(islice(posts, 10))
         today_post_list = [post for post in first_10_posts if post.date_utc.date() == datetime.now(timezone.utc).date()]
@@ -97,7 +104,7 @@ def fetch_profiles_posts(profiles_array, loader_context):
     
     return all_posts
 
-def get_profile_ids(profiles_array, loader_context):
+def get_profile_ids(profiles_array, loader_context, bot_token, telegram_id):
     profile_ids = []
     for profile in profiles_array:
         try:
@@ -106,6 +113,13 @@ def get_profile_ids(profiles_array, loader_context):
         except (ProfileNotExistsException, ConnectionException) as e:
             print(f"Profile {profile} does not exist or there was a connection error: {e}")
             continue
+        except QueryReturnedBadRequestException as e:
+            print(f"Bad request error while fetching profile {profile}: {e}")
+            notify_telegram(
+                f"Bad request error while fetching profile {profile}: {e}",
+                bot_token, telegram_id
+            )
+            break
     return profile_ids
 
 def get_profile_stories(profile_ids, loader):
